@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Complaint Details - ResolveX</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <h2><a href="index.html" class="logo">ResolveX</a></h2>
+    <div>
+      <a href="dashboard.html" id="backLink">Back</a>
+      <a href="index.html" id="logout">Logout</a>
+    </div>
+  </nav>
+
+  <section class="details">
+    <h1>Complaint #<span id="cId"></span></h1>
+
+    <!-- Complaint info (from MySQL) -->
+    <div class="info">
+      <h2 id="cTitle"></h2>
+      <p><strong>Category:</strong> <span id="cCategory"></span></p>
+      <p><strong>Location:</strong> <span id="cLocation"></span></p>
+      <p><strong>Priority:</strong> <span id="cPriority"></span></p>
+      <p><strong>Status:</strong> <span id="cStatus"></span></p>
+      <p><strong>Department:</strong> <span id="cDepartment"></span></p>
+      <p><strong>Description:</strong> <span id="cDescription"></span></p>
+    </div>
+
+    <!-- Comments (from MongoDB) -->
+    <h2>Comments</h2>
+    <div id="commentList"></div>
+
+    <form id="commentForm">
+      <textarea id="commentText" rows="3" placeholder="Write a comment" required></textarea>
+      <button type="submit" class="btn">Add Comment</button>
+    </form>
+    
+    <!-- Feedback (from MongoDB) -->
+    <h2>Feedback</h2>
+    <div id="feedbackBox"></div>
+    
+    <!-- Activity timeline (from MongoDB) -->
+    <h2>Activity Timeline</h2>
+    <div id="timelineBox"></div>
+  </section>
+
+  <script src="details.js"></script>
+</body>
+</html>

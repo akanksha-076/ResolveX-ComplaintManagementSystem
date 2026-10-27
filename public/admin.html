@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Admin Dashboard - ResolveX</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav>
+      <h2><a href="index.html" class="logo">ResolveX</a></h2>
+      <div>
+        <a href="analytics.html">Reports</a>
+        <a href="index.html" id="logout">Logout</a>
+      </div>
+    </nav>
+
+    <!-- Admin dashboard -->
+    <section class="dashboard">
+      <h1>Admin Dashboard</h1>
+
+      <!-- Statistics -->
+      <div class="cards stats">
+        <div class="card">
+          <h3>Total</h3>
+          <p id="totalCount">0</p>
+        </div>
+        <div class="card">
+          <h3>Pending</h3>
+          <p id="pendingCount">0</p>
+        </div>
+        <div class="card">
+          <h3>In Progress</h3>
+          <p id="progressCount">0</p>
+        </div>
+        <div class="card">
+          <h3>Resolved</h3>
+          <p id="resolvedCount">0</p>
+        </div>
+      </div>
+
+      <!-- All complaints -->
+      <div class="filter">
+        <label>Filter by status:</label>
+        <select id="statusFilter">
+          <option>All</option>
+          <option>Pending</option>
+          <option>In Progress</option>
+          <option>Resolved</option>
+          <option>Rejected</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="adminList"></tbody>
+      </table>
+    </section>
+    <script src="admin.js"></script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>New Complaint - ResolveX</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <h2><a href="index.html" class="logo">ResolveX</a></h2>
+    <div>
+      <a href="dashboard.html">My Complaints</a>
+      <a href="index.html">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Complaint form -->
+  <section class="form-box">
+    <h1>Submit Complaint</h1>
+
+    <form id="complaintForm">
+      <label>Title</label>
+      <input type="text" id="title" placeholder="Short title of the problem" required>
+
+      <label>Category</label>
+      <select id="category" required>
+        <option value="">Select category</option>
+        <option>Infrastructure</option>
+        <option>Hostel</option>
+        <option>Academic</option>
+        <option>Library</option>
+        <option>Other</option>
+      </select>
+
+      <label>Location</label>
+      <input type="text" id="location" placeholder="Example: Block A, Room 204" required>
+
+      <label>Priority</label>
+      <select id="priority" required>
+        <option value="">Select priority</option>
+        <option>Low</option>
+        <option>Medium</option>
+        <option>High</option>
+      </select>
+
+      <label>Description</label>
+      <textarea id="description" rows="4" placeholder="Explain the problem" required></textarea>
+
+      <button type="submit" class="btn">Submit Complaint</button>
+    </form>
+  </section>
+
+  <script src="complaint.js"></script>
+</body>
+</html>

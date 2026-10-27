@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Complaints - ResolveX</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <h2><a href="index.html" class="logo">ResolveX</a></h2>
+    <div>
+      <a href="index.html" id="logout">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Dashboard -->
+  <section class="dashboard">
+    <div class="dash-top">
+      <h1>My Complaints</h1>
+      <a href="complaint.html" class="btn">New Complaint</a>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="complaintList">
+        
+      </tbody>
+    </table>
+  </section>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
