@@ -8,7 +8,7 @@ Students submit complaints, admins assign departments and update the status, and
 - MySQL: users, departments, complaints, status history
 - MongoDB: comments, feedback, activity logs
 
-## How to run
+## How to run 
 1. Install Node.js, MySQL and MongoDB.
 2. Run `schema.sql` in MySQL Workbench to create the database.
 3. Copy `.env.example` to a new file named `.env` and enter your MySQL password.
