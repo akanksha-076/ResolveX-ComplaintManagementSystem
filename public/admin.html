@@ -1,70 +1,114 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Admin Dashboard - ResolveX</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <!-- Navbar -->
-    <nav>
-      <h2><a href="index.html" class="logo">ResolveX</a></h2>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — ResolveX</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">R</span>
+      <span>ResolveX</span>
+    </a>
+    <div class="nav-links">
+      <a href="admin.html" class="nav-link active">Dashboard</a>
+      <a href="analytics.html" class="nav-link">Reports &amp; Warehouse</a>
+      <a href="dbms-lab.html" class="nav-link" id="dbmsLabNav">DBMS &amp; Scalability Lab</a>
+      <span id="navUserBadge" class="user-pill"></span>
+      <a href="index.html" id="logout" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-top">
       <div>
-        <a href="analytics.html">Reports</a>
-        <a href="index.html" id="logout">Logout</a>
+        <h1>Admin Complaint Console</h1>
+        <p class="page-subtitle">Triage complaints with optimistic locking, SLA tracking, and cursor escalation</p>
       </div>
-    </nav>
-
-    <!-- Admin dashboard -->
-    <section class="dashboard">
-      <h1>Admin Dashboard</h1>
-
-      <!-- Statistics -->
-      <div class="cards stats">
-        <div class="card">
-          <h3>Total</h3>
-          <p id="totalCount">0</p>
-        </div>
-        <div class="card">
-          <h3>Pending</h3>
-          <p id="pendingCount">0</p>
-        </div>
-        <div class="card">
-          <h3>In Progress</h3>
-          <p id="progressCount">0</p>
-        </div>
-        <div class="card">
-          <h3>Resolved</h3>
-          <p id="resolvedCount">0</p>
-        </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button id="escalateBtn" class="btn-outline btn-sm">Auto-Escalate Overdue (&gt;24h Cursor)</button>
+        <a href="analytics.html" class="btn btn-sm">Open Reports &amp; ETL</a>
       </div>
+    </div>
 
-      <!-- All complaints -->
-      <div class="filter">
-        <label>Filter by status:</label>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Complaints</div>
+        <div class="stat-value" id="totalCount">0</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value" id="pendingCount">0</div>
+      </div>
+      <div class="stat-card info">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" id="progressCount">0</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-label">Resolved</div>
+        <div class="stat-value" id="resolvedCount">0</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <input type="search" id="searchInput" placeholder="Search title, location, or student name...">
         <select id="statusFilter">
-          <option>All</option>
-          <option>Pending</option>
-          <option>In Progress</option>
-          <option>Resolved</option>
-          <option>Rejected</option>
+          <option value="All">All Statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Resolved">Resolved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+        <select id="priorityFilter">
+          <option value="All">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <select id="categoryFilter">
+          <option value="All">All Categories</option>
+          <option>Infrastructure</option>
+          <option>Hostel</option>
+          <option>Academic</option>
+          <option>Library</option>
+          <option>IT &amp; Network</option>
+          <option>Other</option>
         </select>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Category</th>
-            <th>Priority</th>
-            <th>Department</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="adminList"></tbody>
-      </table>
-    </section>
-    <script src="admin.js"></script>
-  </body>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title &amp; Student</th>
+              <th>Category</th>
+              <th>Priority &amp; SLA</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th>Ver</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="adminList"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <span id="pageInfo">Page 1 of 1</span>
+        <div class="pagination-controls">
+          <button class="btn-outline btn-sm" id="prevPage">Previous</button>
+          <button class="btn-outline btn-sm" id="nextPage">Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="ui.js"></script>
+  <script src="admin.js"></script>
+</body>
 </html>

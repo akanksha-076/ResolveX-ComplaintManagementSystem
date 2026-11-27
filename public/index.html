@@ -2,72 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ResolveX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResolveX — Campus Complaint Management System</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Navbar -->
   <nav>
-    <h2>ResolveX</h2>
-    <div>
-      <a href="login.html">Login</a>
-      <a href="register.html" class="btn">Get Started</a>
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">R</span>
+      <span>ResolveX</span>
+    </a>
+    <div class="nav-links">
+      <a href="login.html" class="nav-link">Login</a>
+      <a href="register.html" class="btn btn-sm">Get Started</a>
     </div>
   </nav>
 
-  <!-- Top section -->
   <section class="hero">
+    <div class="hero-badge">HYBRID MYSQL + MONGODB &bull; ACID &bull; RBAC &bull; ETL WAREHOUSE</div>
     <h1>Campus Issues, <span>Solved Faster</span></h1>
-    <p>A simple platform for students and admins to report, track, and resolve campus complaints.</p>
-    <a href="register.html" class="btn">Start Reporting</a>
-    <a href="login.html" class="btn-outline">Sign In</a>
+    <p>
+      A scalable platform for students, department staff, and administrators to report, track, audit, and resolve campus complaints with full transparency.
+    </p>
+    <div class="hero-actions">
+      <a href="register.html" class="btn">Start Reporting</a>
+      <a href="login.html" class="btn-outline">Sign In</a>
+    </div>
+    <div class="tech-strip">
+      <span class="tech-chip">ACID Transactions &amp; Savepoints</span>
+      <span class="tech-chip">Optimistic &amp; Pessimistic Locking</span>
+      <span class="tech-chip">Cursors, Triggers &amp; Functions</span>
+      <span class="tech-chip">JWT + RBAC Security</span>
+      <span class="tech-chip">B-Tree &amp; Hash Indexing</span>
+      <span class="tech-chip">KV Cache &amp; ETL Data Warehouse</span>
+    </div>
   </section>
-    <!-- Why use section -->
-  <section class="features">
-    <h2>Why Use ResolveX?</h2>
+
+  <section class="section-wrap">
+    <div class="section-header">
+      <h2>Why Use ResolveX?</h2>
+      <p>Built on a scalable polyglot persistence architecture combining MySQL and MongoDB.</p>
+    </div>
 
     <div class="cards">
       <div class="card">
         <h3>Easy Reporting</h3>
-        <p>Submit complaints with just a few clicks. No more paper forms.</p>
+        <p>Submit complaints online with category, location, priority, and instant SLA target tracking inside an atomic MySQL transaction.</p>
       </div>
-
       <div class="card">
-        <h3>Track Progress</h3>
-        <p>Check the status of your complaint at any time.</p>
+        <h3>Real-Time Progress &amp; Audit</h3>
+        <p>Automated triggers capture every status transition in MySQL while MongoDB stores discussion comments and live activity timelines.</p>
       </div>
-
       <div class="card">
-        <h3>Analytics</h3>
-        <p>Admins can see complaint counts and resolution status.</p>
+        <h3>Analytics &amp; Data Warehouse</h3>
+        <p>Run an integrated ETL pipeline to populate star-schema warehouse facts, archive Data Lake snapshots, and monitor SLA metrics.</p>
+      </div>
+      <div class="card">
+        <h3>Enterprise DBMS Security</h3>
+        <p>Protected by bcrypt password hashing, signed JWT tokens, Role-Based Access Control (RBAC), and parameterized SQL injection shields.</p>
       </div>
     </div>
   </section>
-    <!-- For everyone section -->
-  <section class="features campus">
-    <h2>For Everyone on Campus</h2>
 
-    <div class="cards">
-      <div class="card">
-        <h3>Students</h3>
-        <p>Submit complaints and track their status.</p>
+  <section class="campus-band">
+    <div class="section-wrap">
+      <div class="section-header">
+        <h2>For Everyone on Campus</h2>
+        <p>Tailored workflows backed by fine-grained RBAC permissions.</p>
       </div>
 
-      <div class="card">
-        <h3>Departments</h3>
-        <p>Receive assigned complaints and work on them.</p>
-      </div>
-
-      <div class="card">
-        <h3>Admins</h3>
-        <p>Assign complaints and update their status.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>Students</h3>
+          <p>Submit issues, search personal complaint history, collaborate via comments, and rate resolved complaints.</p>
+        </div>
+        <div class="card">
+          <h3>Department Staff</h3>
+          <p>View assigned departmental queues, respond to student comments, and update resolution progress safely with optimistic locking.</p>
+        </div>
+        <div class="card">
+          <h3>Administrators</h3>
+          <p>Triage complaints, run cursor-based overdue escalation, inspect EXPLAIN query plans, manage RBAC roles, and execute ETL analytics.</p>
+        </div>
       </div>
     </div>
   </section>
-    <!-- Footer -->
+
   <footer>
-    <p>© 2026 ResolveX - Campus Complaint Management System</p>
+    &copy; 2026 ResolveX &mdash; Campus Complaint Management System &bull; K. R. Mangalam University
   </footer>
 
 </body>

@@ -1,152 +1,151 @@
-const user = JSON.parse(localStorage.getItem('user'));
-
-// If nobody is logged in, send them to the login page
-if (!user) {
-  window.location.href = 'login.html';
+const user = ResolveX.requireLogin(['student', 'admin', 'department_staff']);
+if (user) {
+  ResolveX.mountNavbarUser();
+  document.getElementById('backLink').href =
+    user.role === 'admin' || user.role === 'department_staff' ? 'admin.html' : 'dashboard.html';
 }
 
-// The complaint id comes from the address: details.html?id=1
 const id = new URLSearchParams(window.location.search).get('id');
-
-// The Back link depends on the role
-document.getElementById('backLink').href =
-  user.role === 'admin' ? 'admin.html' : 'dashboard.html';
-
-document.getElementById('logout').addEventListener('click', () => {
-  localStorage.removeItem('user');
-});
-
 let complaint = null;
 
-// Show the complaint (MySQL)
 async function loadComplaint() {
-  const res = await fetch('/api/complaints/' + id);
-
+  const res = await ResolveX.apiFetch('/api/complaints/' + id);
   if (!res.ok) {
-    document.querySelector('.info').textContent = 'Complaint not found.';
+    const err = await res.json().catch(() => ({}));
+    document.getElementById('cSubtitle').textContent = err.error || 'Complaint not found.';
+    ResolveX.showToast(err.error || 'Complaint not found', 'error');
     return false;
   }
 
   complaint = await res.json();
+  const e = ResolveX.escapeHtml;
 
   document.getElementById('cId').textContent = complaint.complaint_id;
   document.getElementById('cTitle').textContent = complaint.title;
+  document.getElementById('cSubtitle').textContent =
+    `Submitted by ${complaint.student_name} on ${new Date(complaint.created_at).toLocaleString()}`;
+  document.getElementById('cStatusBadge').innerHTML =
+    `<span class="status ${ResolveX.statusClass(complaint.status)}">${e(complaint.status)}</span>`;
+  document.getElementById('cSlaBadge').innerHTML =
+    `<span class="status ${ResolveX.slaClass(complaint.sla_status)}">SLA: ${e(complaint.sla_status)}</span>`;
+
   document.getElementById('cCategory').textContent = complaint.category;
-  document.getElementById('cLocation').textContent = complaint.location;
-  document.getElementById('cPriority').textContent = complaint.priority;
-  document.getElementById('cStatus').textContent = complaint.status;
   document.getElementById('cDepartment').textContent = complaint.department_name || 'Not assigned';
+  document.getElementById('cLocation').textContent = complaint.location;
+  document.getElementById('cPriority').textContent =
+    complaint.priority + (complaint.sla_policy ? ' — ' + complaint.sla_policy : '');
+  document.getElementById('cResolution').textContent =
+    complaint.resolution_minutes !== null && complaint.resolution_minutes !== undefined
+      ? complaint.resolution_minutes + ' min'
+      : 'Pending resolution';
+  document.getElementById('cVersion').textContent = 'v' + (complaint.version || 1);
   document.getElementById('cDescription').textContent = complaint.description;
+
+  const histBox = document.getElementById('historyBox');
+  histBox.innerHTML = '';
+  const history = complaint.status_history || [];
+  if (history.length === 0) {
+    histBox.textContent = 'No status transitions recorded yet.';
+  } else {
+    history.forEach((h) => {
+      const div = document.createElement('div');
+      div.className = 'timeline-item';
+      div.innerHTML =
+        `<strong>${e(h.old_status || 'New')} &rarr; ${e(h.new_status)}</strong>` +
+        `<p>By ${e(h.changed_by || 'Workflow')} &bull; ${new Date(h.changed_at).toLocaleString()}</p>`;
+      histBox.appendChild(div);
+    });
+  }
 
   return true;
 }
 
-// Show the comments (MongoDB)
 async function loadComments() {
-  const res = await fetch('/api/comments/' + id);
+  const res = await ResolveX.apiFetch('/api/comments/' + id);
   const comments = await res.json();
-
   const box = document.getElementById('commentList');
   box.innerHTML = '';
 
-  if (comments.length === 0) {
-    box.textContent = 'No comments yet.';
+  if (!Array.isArray(comments) || comments.length === 0) {
+    box.innerHTML = '<p style="color:#64748b;margin:0;">No comments yet. Start the discussion below.</p>';
     return;
   }
 
   comments.forEach((c) => {
     const div = document.createElement('div');
     div.className = 'comment';
-
-    const who = document.createElement('strong');
-    who.textContent = c.user_name + ' (' + c.role + ')';
-
-    const time = document.createElement('small');
-    time.textContent = ' ' + new Date(c.created_at).toLocaleString();
-
-    const text = document.createElement('p');
-    text.textContent = c.comment;
-
-    div.appendChild(who);
-    div.appendChild(time);
-    div.appendChild(text);
+    div.innerHTML =
+      `<strong>${ResolveX.escapeHtml(c.user_name)}</strong> ` +
+      `<span class="role-chip">${ResolveX.escapeHtml(c.role)}</span>` +
+      `<small>${new Date(c.created_at).toLocaleString()}</small>` +
+      `<p>${ResolveX.escapeHtml(c.comment)}</p>`;
     box.appendChild(div);
   });
 }
 
-// Show the feedback (MongoDB), or the feedback form for the student
 async function loadFeedback() {
   const box = document.getElementById('feedbackBox');
   box.innerHTML = '';
 
-  const res = await fetch('/api/feedback/' + id);
+  const res = await ResolveX.apiFetch('/api/feedback/' + id);
   const feedback = await res.json();
 
-  // Feedback already given: show it
   if (feedback) {
-    const rating = document.createElement('p');
-    rating.textContent = 'Rating: ' + feedback.rating + ' / 5';
-
-    const text = document.createElement('p');
-    text.textContent = feedback.feedback;
-
-    box.appendChild(rating);
-    box.appendChild(text);
+    const stars = '★'.repeat(feedback.rating) + '☆'.repeat(5 - feedback.rating);
+    box.innerHTML =
+      `<p style="margin:0 0 6px;font-size:18px;color:#d97706;">${stars} <span style="font-size:14px;color:#0f172a;font-weight:700;">(${feedback.rating}/5)</span></p>` +
+      `<p style="margin:0;color:#475569;">${ResolveX.escapeHtml(feedback.feedback)}</p>`;
     return;
   }
 
-  // The student who made the complaint can give feedback once it is resolved
-  const isOwner = complaint.user_id === user.user_id;
-
+  const isOwner = complaint && complaint.user_id === user.user_id;
   if (isOwner && complaint.status === 'Resolved') {
     box.innerHTML =
-      '<form id="feedbackForm">' +
-      '<label>Rating</label>' +
-      '<select id="rating">' +
-      '<option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>' +
-      '</select>' +
-      '<textarea id="feedbackText" rows="3" placeholder="Write your feedback" required></textarea>' +
-      '<button type="submit" class="btn">Submit Feedback</button>' +
-      '</form>';
+      `<form id="feedbackForm">
+        <label for="rating">Rating</label>
+        <select id="rating">
+          <option value="5">5 — Excellent</option>
+          <option value="4">4 — Good</option>
+          <option value="3">3 — Average</option>
+          <option value="2">2 — Poor</option>
+          <option value="1">1 — Very Poor</option>
+        </select>
+        <label for="feedbackText">Feedback</label>
+        <textarea id="feedbackText" rows="3" placeholder="Share how well the issue was resolved" required></textarea>
+        <button type="submit" class="btn btn-sm" style="margin-top:10px;">Submit Feedback</button>
+      </form>`;
 
     document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const saveRes = await fetch('/api/feedback', {
+      const saveRes = await ResolveX.apiFetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           complaint_id: Number(id),
-          user_id: user.user_id,
-          user_name: user.name,
           rating: Number(document.getElementById('rating').value),
-          feedback: document.getElementById('feedbackText').value
+          feedback: document.getElementById('feedbackText').value.trim()
         })
       });
-
       const data = await saveRes.json();
-
       if (saveRes.ok) {
+        ResolveX.showToast('Thank you! Feedback saved in MongoDB.', 'success');
         loadFeedback();
         loadActivity();
       } else {
-        alert(data.error);
+        ResolveX.showToast(data.error || 'Could not save feedback', 'error');
       }
     });
   } else {
-    box.textContent = 'No feedback yet. The student can give feedback after the complaint is resolved.';
+    box.innerHTML = '<p style="color:#64748b;margin:0;">Feedback becomes available to the originating student once the complaint is Resolved.</p>';
   }
 }
 
-// Show the activity timeline (MongoDB)
 async function loadActivity() {
-  const res = await fetch('/api/activity/' + id);
+  const res = await ResolveX.apiFetch('/api/activity/' + id);
   const logs = await res.json();
-
   const box = document.getElementById('timelineBox');
   box.innerHTML = '';
 
-  if (logs.length === 0) {
+  if (!Array.isArray(logs) || logs.length === 0) {
     box.textContent = 'No activity recorded yet.';
     return;
   }
@@ -154,52 +153,37 @@ async function loadActivity() {
   logs.forEach((l) => {
     const div = document.createElement('div');
     div.className = 'timeline-item';
-
-    const action = document.createElement('strong');
-    action.textContent = l.action;
-
-    const who = document.createElement('p');
-    who.textContent = 'by ' + l.user_name + ' (' + l.role + ') on ' + new Date(l.created_at).toLocaleString();
-
-    div.appendChild(action);
-    div.appendChild(who);
+    div.innerHTML =
+      `<strong>${ResolveX.escapeHtml(l.action)}</strong>` +
+      `<p>by ${ResolveX.escapeHtml(l.user_name)} (${ResolveX.escapeHtml(l.role)}) &bull; ${new Date(l.created_at).toLocaleString()}</p>`;
     box.appendChild(div);
   });
 }
 
-// Add a new comment
 document.getElementById('commentForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-
   const textBox = document.getElementById('commentText');
-
-  const res = await fetch('/api/comments', {
+  const res = await ResolveX.apiFetch('/api/comments', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       complaint_id: Number(id),
-      user_id: user.user_id,
-      user_name: user.name,
-      role: user.role,
-      comment: textBox.value
+      comment: textBox.value.trim()
     })
   });
-
   const data = await res.json();
-
   if (res.ok) {
     textBox.value = '';
+    ResolveX.showToast('Comment posted', 'success');
     loadComments();
     loadActivity();
   } else {
-    alert(data.error);
+    ResolveX.showToast(data.error || 'Error adding comment', 'error');
   }
 });
 
-// Start: the complaint must load first, because feedback depends on it
 async function start() {
+  if (!id || !user) return;
   const found = await loadComplaint();
-
   if (found) {
     loadComments();
     loadFeedback();

@@ -1,22 +1,35 @@
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const name = document.getElementById('name').value;
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
 
-  const res = await fetch('/api/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password })
-  });
+  try {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
 
-  const data = await res.json();
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
+    });
 
-  if (res.ok) {
-    alert('Registered successfully');
-    window.location.href = 'login.html';
-  } else {
-    alert(data.error);
+    const data = await res.json();
+
+    if (res.ok) {
+      ResolveX.showToast('Account registered! Redirecting to login...', 'success');
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 600);
+    } else {
+      ResolveX.showToast(data.error || 'Registration failed', 'error');
+    }
+  } catch (err) {
+    ResolveX.showToast('Network error during registration', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
   }
 });

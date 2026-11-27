@@ -2,36 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - ResolveX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — ResolveX</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Navbar -->
   <nav>
-    <h2><a href="index.html" class="logo">ResolveX</a></h2>
-    <div>
-      <a href="register.html" class="btn">Get Started</a>
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">R</span>
+      <span>ResolveX</span>
+    </a>
+    <div class="nav-links">
+      <a href="register.html" class="btn btn-sm">Get Started</a>
     </div>
   </nav>
 
-  <!-- Login form -->
   <section class="form-box">
-    <h1>Login</h1>
+    <h1>Welcome Back</h1>
+    <p class="form-desc">Sign in with your ResolveX account</p>
 
     <form id="loginForm">
-      <label>Email</label>
-      <input type="email" id="email" placeholder="Enter your email" required>
+      <label for="email">Email Address</label>
+      <input type="email" id="email" placeholder="you@university.edu" required>
 
-      <label>Password</label>
+      <label for="password">Password</label>
       <input type="password" id="password" placeholder="Enter your password" required>
 
-      <button type="submit" class="btn">Login</button>
+      <button type="submit" class="btn" id="loginBtn">Sign In</button>
     </form>
 
-    <p class="small">New here? <a href="register.html">Create an account</a></p>
+    <p class="small">New here? <a href="register.html">Create a student account</a></p>
   </section>
 
+  <script src="ui.js"></script>
   <script src="login.js"></script>
 </body>
 </html>

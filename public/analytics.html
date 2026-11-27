@@ -2,36 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Reports - ResolveX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports &amp; Data Warehouse — ResolveX</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Navbar -->
   <nav>
-    <h2><a href="index.html" class="logo">ResolveX</a></h2>
-    <div>
-      <a href="admin.html">Back to Dashboard</a>
-      <a href="index.html" id="logout">Logout</a>
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">R</span>
+      <span>ResolveX</span>
+    </a>
+    <div class="nav-links">
+      <a href="admin.html" class="nav-link">Dashboard</a>
+      <a href="analytics.html" class="nav-link active">Reports &amp; Warehouse</a>
+      <a href="dbms-lab.html" class="nav-link" id="dbmsLabNav">DBMS &amp; Scalability Lab</a>
+      <span id="navUserBadge" class="user-pill"></span>
+      <a href="index.html" id="logout" class="nav-link">Logout</a>
     </div>
   </nav>
 
-  <section class="dashboard reports">
-    <h1>Reports and Analytics</h1>
+  <main class="container">
+    <div class="page-top">
+      <div>
+        <h1>Reports, Analytics &amp; Data Warehouse</h1>
+        <p class="page-subtitle">Hybrid MySQL GROUP BY + MongoDB Aggregation + Key-Value Cache + ETL Star Schema</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span class="role-chip" id="cacheBadge">KV Cache: Loading...</span>
+        <button class="btn btn-sm" id="runEtlBtn">Run ETL Pipeline (MySQL + MongoDB)</button>
+      </div>
+    </div>
 
-    <h2>Complaints by Category</h2>
-    <div id="categoryBox"></div>
+    <div class="stats-grid">
+      <div class="stat-card success">
+        <div class="stat-label">Resolved Complaints</div>
+        <div class="stat-value" id="resolvedMetric">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Resolution Time</div>
+        <div class="stat-value" id="avgTimeMetric">-</div>
+      </div>
+      <div class="stat-card info">
+        <div class="stat-label">Avg Student Rating</div>
+        <div class="stat-value" id="avgRatingMetric">-</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-label">MongoDB Interactions</div>
+        <div class="stat-value" id="mongoMetric">0</div>
+      </div>
+    </div>
 
-    <h2>Complaints by Status</h2>
-    <div id="statusBox"></div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><h3>Complaints by Category</h3></div>
+        <div id="categoryChart"></div>
+        <div id="categoryBox" class="table-wrap" style="margin-top:12px;"></div>
+      </div>
 
-    <h2>Open Complaints by Department</h2>
-    <div id="departmentBox"></div>
+      <div class="panel">
+        <div class="panel-header"><h3>Complaints by Status &amp; SLA</h3></div>
+        <div id="statusChart"></div>
+        <div id="statusBox" class="table-wrap" style="margin-top:12px;"></div>
+      </div>
+    </div>
 
-    <h2>Resolution Statistics</h2>
-    <div id="resolutionBox"></div>
-  </section>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><h3>Department Workload Breakdown</h3></div>
+        <div id="departmentBox" class="table-wrap"></div>
+      </div>
 
+      <div class="panel">
+        <div class="panel-header"><h3>SLA Compliance Breakdown</h3></div>
+        <div id="slaBox" class="table-wrap"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3>ETL Data Warehouse Facts (<code>dw_complaint_facts</code>) &amp; MongoDB Data Lake Snapshots</h3>
+      </div>
+      <div id="etlSummary" style="margin-bottom:12px;color:#475569;font-size:14px;"></div>
+      <div id="warehouseBox" class="table-wrap"></div>
+      <h4 style="margin:18px 0 8px;">Recent MongoDB Data Lake Snapshots (<code>data_lake_snapshots</code>)</h4>
+      <div id="dataLakeBox" class="table-wrap"></div>
+    </div>
+  </main>
+
+  <script src="ui.js"></script>
   <script src="analytics.js"></script>
 </body>
 </html>

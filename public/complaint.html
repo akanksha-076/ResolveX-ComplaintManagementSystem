@@ -2,56 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>New Complaint - ResolveX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit Complaint — ResolveX</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Navbar -->
   <nav>
-    <h2><a href="index.html" class="logo">ResolveX</a></h2>
-    <div>
-      <a href="dashboard.html">My Complaints</a>
-      <a href="index.html">Logout</a>
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">R</span>
+      <span>ResolveX</span>
+    </a>
+    <div class="nav-links">
+      <span id="navUserBadge" class="user-pill"></span>
+      <a href="dashboard.html" class="nav-link">My Complaints</a>
+      <a href="index.html" id="logout" class="nav-link">Logout</a>
     </div>
   </nav>
 
-  <!-- Complaint form -->
-  <section class="form-box">
-    <h1>Submit Complaint</h1>
+  <main class="container">
+    <section class="form-box wide" style="margin-top: 20px;">
+      <h1>Submit a Complaint</h1>
+      <p class="form-desc">Saved inside an ACID MySQL transaction with automatic status history &amp; activity log</p>
 
-    <form id="complaintForm">
-      <label>Title</label>
-      <input type="text" id="title" placeholder="Short title of the problem" required>
+      <form id="complaintForm">
+        <label for="title">Complaint Title</label>
+        <input type="text" id="title" placeholder="Short summary of the campus issue" required>
 
-      <label>Category</label>
-      <select id="category" required>
-        <option value="">Select category</option>
-        <option>Infrastructure</option>
-        <option>Hostel</option>
-        <option>Academic</option>
-        <option>Library</option>
-        <option>Other</option>
-      </select>
+        <div class="form-grid-2">
+          <div>
+            <label for="category">Category</label>
+            <select id="category" required>
+              <option value="">Select category</option>
+              <option>Infrastructure</option>
+              <option>Hostel</option>
+              <option>Academic</option>
+              <option>Library</option>
+              <option>IT &amp; Network</option>
+              <option>Other</option>
+            </select>
+          </div>
 
-      <label>Location</label>
-      <input type="text" id="location" placeholder="Example: Block A, Room 204" required>
+          <div>
+            <label for="priority">Priority (Hash-Indexed SLA Policy)</label>
+            <select id="priority" required>
+              <option value="">Select priority</option>
+              <option value="Low">Low (72h SLA)</option>
+              <option value="Medium">Medium (24h SLA)</option>
+              <option value="High">High (2h SLA)</option>
+            </select>
+          </div>
+        </div>
 
-      <label>Priority</label>
-      <select id="priority" required>
-        <option value="">Select priority</option>
-        <option>Low</option>
-        <option>Medium</option>
-        <option>High</option>
-      </select>
+        <label for="location">Location</label>
+        <input type="text" id="location" placeholder="Example: Block A, Room 204 or Girls Hostel Floor 2" required>
 
-      <label>Description</label>
-      <textarea id="description" rows="4" placeholder="Explain the problem" required></textarea>
+        <label for="description">Detailed Description</label>
+        <textarea id="description" rows="4" placeholder="Describe the issue clearly so the right department can act quickly" required></textarea>
 
-      <button type="submit" class="btn">Submit Complaint</button>
-    </form>
-  </section>
+        <button type="submit" class="btn" id="submitBtn">Submit Complaint</button>
+      </form>
+    </section>
+  </main>
 
+  <script src="ui.js"></script>
   <script src="complaint.js"></script>
 </body>
 </html>
