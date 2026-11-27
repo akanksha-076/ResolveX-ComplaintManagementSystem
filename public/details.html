@@ -24,7 +24,7 @@
     <div class="page-top">
       <div>
         <h1>Complaint #<span id="cId"></span> <span id="cStatusBadge"></span></h1>
-        <p class="page-subtitle" id="cSubtitle">Loading relational &amp; NoSQL complaint records...</p>
+        <p class="page-subtitle" id="cSubtitle">Loading complaint details...</p>
       </div>
       <div id="cSlaBadge"></div>
     </div>
@@ -35,18 +35,18 @@
           <h2 id="cTitle" style="margin-top:0;"></h2>
           <div class="meta-grid">
             <div class="meta-item"><small>Category</small><span id="cCategory">-</span></div>
-            <div class="meta-item"><small>Department (LEFT JOIN)</small><span id="cDepartment">-</span></div>
+            <div class="meta-item"><small>Department</small><span id="cDepartment">-</span></div>
             <div class="meta-item"><small>Location</small><span id="cLocation">-</span></div>
-            <div class="meta-item"><small>Priority &amp; SLA Policy</small><span id="cPriority">-</span></div>
-            <div class="meta-item"><small>Resolution Duration</small><span id="cResolution">-</span></div>
-            <div class="meta-item"><small>Lock Version</small><span id="cVersion">-</span></div>
+            <div class="meta-item"><small>Priority</small><span id="cPriority">-</span></div>
+            <div class="meta-item"><small>Resolution Time</small><span id="cResolution">-</span></div>
+            <div class="meta-item"><small>Submitted On</small><span id="cCreated">-</span></div>
           </div>
           <p style="margin-bottom:0;"><strong>Description:</strong><br><span id="cDescription" style="color:#475569;"></span></p>
         </div>
 
         <div class="panel">
           <div class="panel-header">
-            <h3>Discussion Comments (MongoDB Document Store)</h3>
+            <h3>Discussion</h3>
           </div>
           <div id="commentList"></div>
           <form id="commentForm" style="margin-top:14px;">
@@ -57,7 +57,7 @@
 
         <div class="panel">
           <div class="panel-header">
-            <h3>Student Feedback (Cross-DB Validated)</h3>
+            <h3>Student Feedback</h3>
           </div>
           <div id="feedbackBox"></div>
         </div>
@@ -66,14 +66,14 @@
       <div>
         <div class="panel">
           <div class="panel-header">
-            <h3>MySQL Status History (Trigger Audit)</h3>
+            <h3>Status Updates</h3>
           </div>
           <div id="historyBox"></div>
         </div>
 
         <div class="panel">
           <div class="panel-header">
-            <h3>MongoDB Activity Timeline</h3>
+            <h3>Activity Timeline</h3>
           </div>
           <div id="timelineBox"></div>
         </div>

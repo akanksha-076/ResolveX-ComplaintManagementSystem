@@ -15,8 +15,8 @@
     </a>
     <div class="nav-links">
       <a href="admin.html" class="nav-link active">Dashboard</a>
-      <a href="analytics.html" class="nav-link">Reports &amp; Warehouse</a>
-      <a href="dbms-lab.html" class="nav-link" id="dbmsLabNav">DBMS &amp; Scalability Lab</a>
+      <a href="analytics.html" class="nav-link">Reports</a>
+      <a href="users.html" class="nav-link" id="usersNav">Users</a>
       <span id="navUserBadge" class="user-pill"></span>
       <a href="index.html" id="logout" class="nav-link">Logout</a>
     </div>
@@ -25,12 +25,12 @@
   <main class="container">
     <div class="page-top">
       <div>
-        <h1>Admin Complaint Console</h1>
-        <p class="page-subtitle">Triage complaints with optimistic locking, SLA tracking, and cursor escalation</p>
+        <h1>Admin Dashboard</h1>
+        <p class="page-subtitle">Review, assign departments, and resolve campus complaints</p>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button id="escalateBtn" class="btn-outline btn-sm">Auto-Escalate Overdue (&gt;24h Cursor)</button>
-        <a href="analytics.html" class="btn btn-sm">Open Reports &amp; ETL</a>
+        <button id="escalateBtn" class="btn-outline btn-sm">Escalate Overdue (&gt;24h)</button>
+        <a href="analytics.html" class="btn btn-sm">View Reports</a>
       </div>
     </div>
 
@@ -90,7 +90,6 @@
               <th>Priority &amp; SLA</th>
               <th>Department</th>
               <th>Status</th>
-              <th>Ver</th>
               <th>Action</th>
             </tr>
           </thead>

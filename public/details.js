@@ -22,37 +22,36 @@ async function loadComplaint() {
 
   document.getElementById('cId').textContent = complaint.complaint_id;
   document.getElementById('cTitle').textContent = complaint.title;
-  document.getElementById('cSubtitle').textContent =
-    `Submitted by ${complaint.student_name} on ${new Date(complaint.created_at).toLocaleString()}`;
+  document.getElementById('cSubtitle').textContent = `Submitted by ${complaint.student_name}`;
   document.getElementById('cStatusBadge').innerHTML =
     `<span class="status ${ResolveX.statusClass(complaint.status)}">${e(complaint.status)}</span>`;
   document.getElementById('cSlaBadge').innerHTML =
-    `<span class="status ${ResolveX.slaClass(complaint.sla_status)}">SLA: ${e(complaint.sla_status)}</span>`;
+    `<span class="status ${ResolveX.slaClass(complaint.sla_status)}">${e(complaint.sla_status)}</span>`;
 
   document.getElementById('cCategory').textContent = complaint.category;
   document.getElementById('cDepartment').textContent = complaint.department_name || 'Not assigned';
   document.getElementById('cLocation').textContent = complaint.location;
   document.getElementById('cPriority').textContent =
-    complaint.priority + (complaint.sla_policy ? ' — ' + complaint.sla_policy : '');
+    complaint.priority + (complaint.sla_policy ? ' (' + complaint.sla_policy + ')' : '');
   document.getElementById('cResolution').textContent =
     complaint.resolution_minutes !== null && complaint.resolution_minutes !== undefined
       ? complaint.resolution_minutes + ' min'
       : 'Pending resolution';
-  document.getElementById('cVersion').textContent = 'v' + (complaint.version || 1);
+  document.getElementById('cCreated').textContent = new Date(complaint.created_at).toLocaleDateString();
   document.getElementById('cDescription').textContent = complaint.description;
 
   const histBox = document.getElementById('historyBox');
   histBox.innerHTML = '';
   const history = complaint.status_history || [];
   if (history.length === 0) {
-    histBox.textContent = 'No status transitions recorded yet.';
+    histBox.textContent = 'No status updates recorded yet.';
   } else {
     history.forEach((h) => {
       const div = document.createElement('div');
       div.className = 'timeline-item';
       div.innerHTML =
         `<strong>${e(h.old_status || 'New')} &rarr; ${e(h.new_status)}</strong>` +
-        `<p>By ${e(h.changed_by || 'Workflow')} &bull; ${new Date(h.changed_at).toLocaleString()}</p>`;
+        `<p>By ${e(h.changed_by || 'System')} &bull; ${new Date(h.changed_at).toLocaleString()}</p>`;
       histBox.appendChild(div);
     });
   }
@@ -76,7 +75,7 @@ async function loadComments() {
     div.className = 'comment';
     div.innerHTML =
       `<strong>${ResolveX.escapeHtml(c.user_name)}</strong> ` +
-      `<span class="role-chip">${ResolveX.escapeHtml(c.role)}</span>` +
+      `<span class="role-chip">${ResolveX.escapeHtml(c.role.replace('_', ' '))}</span>` +
       `<small>${new Date(c.created_at).toLocaleString()}</small>` +
       `<p>${ResolveX.escapeHtml(c.comment)}</p>`;
     box.appendChild(div);
@@ -127,7 +126,7 @@ async function loadFeedback() {
       });
       const data = await saveRes.json();
       if (saveRes.ok) {
-        ResolveX.showToast('Thank you! Feedback saved in MongoDB.', 'success');
+        ResolveX.showToast('Thank you! Your feedback has been submitted.', 'success');
         loadFeedback();
         loadActivity();
       } else {
@@ -135,7 +134,7 @@ async function loadFeedback() {
       }
     });
   } else {
-    box.innerHTML = '<p style="color:#64748b;margin:0;">Feedback becomes available to the originating student once the complaint is Resolved.</p>';
+    box.innerHTML = '<p style="color:#64748b;margin:0;">Feedback can be submitted once the complaint is resolved.</p>';
   }
 }
 
@@ -155,7 +154,7 @@ async function loadActivity() {
     div.className = 'timeline-item';
     div.innerHTML =
       `<strong>${ResolveX.escapeHtml(l.action)}</strong>` +
-      `<p>by ${ResolveX.escapeHtml(l.user_name)} (${ResolveX.escapeHtml(l.role)}) &bull; ${new Date(l.created_at).toLocaleString()}</p>`;
+      `<p>by ${ResolveX.escapeHtml(l.user_name)} (${ResolveX.escapeHtml(l.role.replace('_', ' '))}) &bull; ${new Date(l.created_at).toLocaleString()}</p>`;
     box.appendChild(div);
   });
 }

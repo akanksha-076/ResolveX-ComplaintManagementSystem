@@ -2,8 +2,8 @@ const user = ResolveX.requireLogin(['admin', 'department_staff']);
 if (user) {
   ResolveX.mountNavbarUser();
   if (user.role !== 'admin') {
-    const labLink = document.getElementById('dbmsLabNav');
-    if (labLink) labLink.style.display = 'none';
+    const usersLink = document.getElementById('usersNav');
+    if (usersLink) usersLink.style.display = 'none';
   }
 }
 
@@ -76,16 +76,13 @@ async function loadReports() {
       return;
     }
 
-    document.getElementById('cacheBadge').textContent = 'KV Cache: ' + (data.cache_status || 'Active');
-
     const resStats = data.resolution || {};
-    const nosql = data.nosqlMetrics || {};
+    const fb = data.feedbackMetrics || {};
     document.getElementById('resolvedMetric').textContent = resStats.resolved_count || 0;
     document.getElementById('avgTimeMetric').textContent = formatTime(resStats.avg_minutes);
     document.getElementById('avgRatingMetric').textContent =
-      nosql.avg_rating !== null && nosql.avg_rating !== undefined ? `${nosql.avg_rating} / 5` : 'No ratings';
-    document.getElementById('mongoMetric').textContent =
-      (nosql.total_comments || 0) + (nosql.total_activities || 0);
+      fb.avg_rating !== null && fb.avg_rating !== undefined ? `${fb.avg_rating} / 5` : 'No ratings';
+    document.getElementById('commentsMetric').textContent = fb.total_comments || 0;
 
     renderBarChart('categoryChart', data.byCategory, 'category', 'total');
     renderBarChart('statusChart', data.byStatus, 'status', 'total');
@@ -110,7 +107,7 @@ async function loadReports() {
 
     showTable(
       'slaBox',
-      ['SLA State', 'Complaints'],
+      ['SLA Status', 'Complaints'],
       (data.slaBreakdown || []).map((r) => [r.sla_status || 'Unknown', r.total])
     );
   } catch (err) {
@@ -118,41 +115,25 @@ async function loadReports() {
   }
 }
 
-async function loadEtlStatus() {
+async function loadSummaryTable() {
   try {
-    const res = await ResolveX.apiFetch('/api/etl/status');
-    const data = await res.json();
+    const res = await ResolveX.apiFetch('/api/reports/summary');
+    const facts = await res.json();
     if (!res.ok) return;
 
-    const facts = data.warehouse_facts || [];
-    const snaps = data.data_lake_snapshots || [];
-    document.getElementById('etlSummary').textContent =
-      `Data Warehouse facts loaded: ${facts.length} row(s) | MongoDB Data Lake archive batches: ${snaps.length}`;
-
     showTable(
-      'warehouseBox',
-      ['Complaint ID', 'Department', 'Category', 'Priority', 'Status', 'Res (min)', 'SLA Met', 'Comments', 'Rating'],
+      'summaryTableBox',
+      ['Complaint ID', 'Department', 'Category', 'Priority', 'Status', 'Resolution (min)', 'On Time', 'Comments', 'Rating'],
       facts.map((f) => [
         '#' + f.complaint_id,
         f.department_name,
         f.category,
         f.priority,
         f.status,
-        f.resolution_minutes ?? 'NULL',
+        f.resolution_minutes ?? '-',
         f.sla_met ? 'Yes' : 'No',
         f.comment_count,
-        f.feedback_rating ?? '-'
-      ])
-    );
-
-    showTable(
-      'dataLakeBox',
-      ['Batch ID', 'Source', 'Records', 'Extracted At'],
-      snaps.map((s) => [
-        s.batch_id,
-        s.source,
-        s.record_count,
-        new Date(s.extracted_at).toLocaleString()
+        f.feedback_rating ? f.feedback_rating + '/5' : '-'
       ])
     );
   } catch (err) {
@@ -160,27 +141,25 @@ async function loadEtlStatus() {
   }
 }
 
-document.getElementById('runEtlBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('runEtlBtn');
+document.getElementById('syncReportBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('syncReportBtn');
   btn.disabled = true;
-  btn.textContent = 'Running ETL...';
+  btn.textContent = 'Refreshing...';
   try {
-    const res = await ResolveX.apiFetch('/api/etl/run', { method: 'POST' });
+    const res = await ResolveX.apiFetch('/api/reports/sync', { method: 'POST' });
     const data = await res.json();
     if (res.ok) {
-      ResolveX.showToast(
-        `ETL Batch ${data.batch_id}: loaded ${data.loaded_warehouse_rows} facts in ${data.duration_ms}ms`,
-        'success'
-      );
-      loadEtlStatus();
+      ResolveX.showToast(data.message || 'Summary refreshed', 'success');
+      await loadReports();
+      await loadSummaryTable();
     } else {
-      ResolveX.showToast(data.error || 'ETL run failed', 'error');
+      ResolveX.showToast(data.error || 'Could not refresh summary', 'error');
     }
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Run ETL Pipeline (MySQL + MongoDB)';
+    btn.textContent = 'Refresh Summary';
   }
 });
 
 loadReports();
-loadEtlStatus();
+loadSummaryTable();

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users &amp; Roles — ResolveX</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">
+      <span class="brand-mark">R</span>
+      <span>ResolveX</span>
+    </a>
+    <div class="nav-links">
+      <a href="admin.html" class="nav-link">Dashboard</a>
+      <a href="analytics.html" class="nav-link">Reports</a>
+      <a href="users.html" class="nav-link active">Users</a>
+      <span id="navUserBadge" class="user-pill"></span>
+      <a href="index.html" id="logout" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-top">
+      <div>
+        <h1>Users &amp; Access Control</h1>
+        <p class="page-subtitle">Manage campus user roles and review recent system activity</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h3>Registered Accounts</h3></div>
+      <div id="usersBox" class="table-wrap"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h3>Recent Security &amp; Activity Log</h3></div>
+      <div id="auditLogBox" class="table-wrap"></div>
+    </div>
+  </main>
+
+  <script src="ui.js"></script>
+  <script src="users.js"></script>
+</body>
+</html>

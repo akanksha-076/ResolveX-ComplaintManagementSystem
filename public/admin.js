@@ -2,8 +2,8 @@ const user = ResolveX.requireLogin(['admin', 'department_staff']);
 if (user) {
   ResolveX.mountNavbarUser();
   if (user.role !== 'admin') {
-    const labLink = document.getElementById('dbmsLabNav');
-    if (labLink) labLink.style.display = 'none';
+    const usersLink = document.getElementById('usersNav');
+    if (usersLink) usersLink.style.display = 'none';
   }
 }
 
@@ -68,7 +68,7 @@ async function loadAdmin() {
     list.innerHTML = '';
 
     if (shown.length === 0) {
-      list.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;">No complaints match the current filter.</td></tr>';
+      list.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;">No complaints match the current filter.</td></tr>';
       return;
     }
 
@@ -111,10 +111,6 @@ async function loadAdmin() {
       statusTd.appendChild(statusSel);
       row.appendChild(statusTd);
 
-      const verTd = document.createElement('td');
-      verTd.innerHTML = `<code>v${c.version || 1}</code>`;
-      row.appendChild(verTd);
-
       const actionTd = document.createElement('td');
       const button = document.createElement('button');
       button.className = 'btn btn-sm';
@@ -134,7 +130,7 @@ async function loadAdmin() {
           });
           const data = await updRes.json();
           if (updRes.ok) {
-            ResolveX.showToast(`Complaint #${c.complaint_id} updated (v${data.new_version})`, 'success');
+            ResolveX.showToast(`Complaint #${c.complaint_id} updated`, 'success');
           } else {
             ResolveX.showToast(data.error || 'Update failed', updRes.status === 409 ? 'warning' : 'error');
           }

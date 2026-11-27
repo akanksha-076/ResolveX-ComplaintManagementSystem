@@ -3,9 +3,9 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
 const { initializeDatabase } = require('./dbInit');
-const { Comment, Feedback, Activity, DataLakeSnapshot } = require('./mongo');
+const { Comment, Feedback, Activity } = require('./mongo');
 const { signToken, requireAuth, requirePermission } = require('./middleware/auth');
-const { getCache, setCache, invalidatePrefix, clearAllCache, getCacheStats } = require('./kvCache');
+const { getCache, setCache, invalidatePrefix } = require('./kvCache');
 const { runETLPipeline } = require('./etl');
 
 const app = express();
@@ -33,21 +33,19 @@ async function logSecurityAudit(actor_user_id, actor_role, action, resource, det
 }
 
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'ResolveX server is running', status: 'healthy' });
+  res.json({ message: 'ResolveX server is running' });
 });
 
-// ==================== DEPARTMENTS (CACHED VIA KV STORE) ====================
+// Get all departments (cached)
 app.get('/api/departments', async (req, res) => {
   try {
     const cached = await getCache('departments:all');
     if (cached) {
-      res.set('X-Cache', `HIT (${cached.layer})`);
       return res.json(cached.value);
     }
 
     const [rows] = await db.query('SELECT * FROM Departments ORDER BY department_id ASC');
     await setCache('departments:all', rows, 300);
-    res.set('X-Cache', 'MISS');
     return res.json(rows);
   } catch (err) {
     console.log(err);
@@ -55,14 +53,14 @@ app.get('/api/departments', async (req, res) => {
   }
 });
 
-// ==================== AUTH & RBAC ====================
+// Register a new student account
 app.post('/api/register', async (req, res) => {
   const name = String(req.body.name || '').trim();
   const email = String(req.body.email || '').trim().toLowerCase();
   const password = String(req.body.password || '');
 
   if (!name || !email || password.length < 4) {
-    return res.status(400).json({ error: 'Name, valid email, and password (min 4 chars) are required' });
+    return res.status(400).json({ error: 'Name, valid email, and password (min 4 characters) are required' });
   }
 
   try {
@@ -87,6 +85,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// Login with JWT + RBAC role
 app.post('/api/login', async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
   const password = String(req.body.password || '');
@@ -104,11 +103,6 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
 
-    const [perms] = await db.query(
-      'SELECT resource, can_read, can_create, can_update, can_delete FROM RBAC_Permissions WHERE role = ?',
-      [user.role]
-    );
-
     const token = signToken({
       user_id: user.user_id,
       name: user.name,
@@ -116,15 +110,14 @@ app.post('/api/login', async (req, res) => {
       role: user.role
     });
 
-    await logSecurityAudit(user.user_id, user.role, 'LOGIN_SUCCESS', 'Users', `Authenticated ${email}`);
+    await logSecurityAudit(user.user_id, user.role, 'LOGIN_SUCCESS', 'Users', `Signed in: ${email}`);
 
     return res.json({
       token,
       user_id: user.user_id,
       name: user.name,
       email: user.email,
-      role: user.role,
-      permissions: perms
+      role: user.role
     });
   } catch (err) {
     console.log(err);
@@ -132,19 +125,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-app.get('/api/me', requireAuth, async (req, res) => {
-  try {
-    const [perms] = await db.query(
-      'SELECT resource, can_read, can_create, can_update, can_delete FROM RBAC_Permissions WHERE role = ?',
-      [req.user.role]
-    );
-    return res.json({ ...req.user, permissions: perms });
-  } catch (err) {
-    return res.status(500).json({ error: 'Database error' });
-  }
-});
-
-// ==================== COMPLAINTS (ACID TRANSACTIONS + PAGINATION + OPTIMISTIC LOCKING) ====================
+// Submit a new complaint (MySQL transaction with savepoint)
 app.post('/api/complaints', requireAuth, requirePermission('complaints', 'create'), async (req, res) => {
   const title = String(req.body.title || '').trim();
   const category = String(req.body.category || '').trim();
@@ -154,7 +135,7 @@ app.post('/api/complaints', requireAuth, requirePermission('complaints', 'create
   const user_id = req.user.user_id;
 
   if (!title || !category || !location || !priority || !description) {
-    return res.status(400).json({ error: 'All complaint fields are required' });
+    return res.status(400).json({ error: 'Please fill in all complaint fields' });
   }
 
   const conn = await db.getConnection();
@@ -194,21 +175,21 @@ app.post('/api/complaints', requireAuth, requirePermission('complaints', 'create
   } catch (err) {
     await conn.rollback();
     console.log(err);
-    return res.status(500).json({ error: 'Transaction rolled back due to database error' });
+    return res.status(500).json({ error: 'Could not save complaint. Please try again.' });
   } finally {
     conn.release();
   }
 });
 
-// Student dashboard with server-side pagination, search, status filter & summary stats
+// Get paginated complaints for one student
 app.get('/api/complaints/user/:id', requireAuth, requirePermission('complaints', 'read'), async (req, res) => {
   const targetUserId = Number(req.params.id);
   if (req.user.role !== 'admin' && req.user.user_id !== targetUserId) {
-    return res.status(403).json({ error: 'Access denied: you can view only your own complaints.' });
+    return res.status(403).json({ error: 'You can view only your own complaints.' });
   }
 
   const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 8));
   const offset = (page - 1) * limit;
   const search = String(req.query.q || '').trim();
   const status = String(req.query.status || '').trim();
@@ -250,8 +231,7 @@ app.get('/api/complaints/user/:id', requireAuth, requirePermission('complaints',
       `SELECT COUNT(*) AS total,
               IFNULL(SUM(status = 'Pending'), 0) AS pending,
               IFNULL(SUM(status = 'In Progress'), 0) AS in_progress,
-              IFNULL(SUM(status = 'Resolved'), 0) AS resolved,
-              IFNULL(SUM(status = 'Rejected'), 0) AS rejected
+              IFNULL(SUM(status = 'Resolved'), 0) AS resolved
        FROM Complaints
        WHERE user_id = ?`,
       [targetUserId]
@@ -273,10 +253,10 @@ app.get('/api/complaints/user/:id', requireAuth, requirePermission('complaints',
   }
 });
 
-// Admin / Staff paginated complaints list with multi-criteria filtering
+// Get paginated complaints for admin / department staff
 app.get('/api/complaints', requireAuth, requirePermission('complaints', 'read'), async (req, res) => {
   if (req.user.role === 'student') {
-    return res.status(403).json({ error: 'Students cannot list all campus complaints.' });
+    return res.status(403).json({ error: 'Access denied.' });
   }
 
   const page = Math.max(1, Number(req.query.page) || 1);
@@ -315,8 +295,7 @@ app.get('/api/complaints', requireAuth, requirePermission('complaints', 'read'),
       `SELECT c.complaint_id, c.title, c.category, c.location, c.priority,
               c.department_id, c.status, c.version, c.created_at,
               u.name AS student_name, d.department_name,
-              fn_sla_status(c.complaint_id) AS sla_status,
-              fn_resolution_minutes(c.complaint_id) AS resolution_minutes
+              fn_sla_status(c.complaint_id) AS sla_status
        FROM Complaints c
        JOIN Users u ON c.user_id = u.user_id
        LEFT JOIN Departments d ON c.department_id = d.department_id
@@ -338,8 +317,7 @@ app.get('/api/complaints', requireAuth, requirePermission('complaints', 'read'),
       `SELECT COUNT(*) AS total,
               IFNULL(SUM(status = 'Pending'), 0) AS pending,
               IFNULL(SUM(status = 'In Progress'), 0) AS in_progress,
-              IFNULL(SUM(status = 'Resolved'), 0) AS resolved,
-              IFNULL(SUM(status = 'Rejected'), 0) AS rejected
+              IFNULL(SUM(status = 'Resolved'), 0) AS resolved
        FROM Complaints`
     );
 
@@ -359,13 +337,12 @@ app.get('/api/complaints', requireAuth, requirePermission('complaints', 'read'),
   }
 });
 
-// Complaint details with LEFT JOIN + HASH index SLA policy lookup + Status_History
+// Get one complaint with department, SLA policy & status history
 app.get('/api/complaints/:id', requireAuth, requirePermission('complaints', 'read'), async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT c.*, u.name AS student_name, u.email AS student_email,
+      `SELECT c.*, u.name AS student_name,
               d.department_name,
-              s.target_minutes AS sla_target_minutes,
               s.escalation_label AS sla_policy,
               fn_resolution_minutes(c.complaint_id) AS resolution_minutes,
               fn_sla_status(c.complaint_id) AS sla_status
@@ -383,7 +360,7 @@ app.get('/api/complaints/:id', requireAuth, requirePermission('complaints', 'rea
 
     const complaint = rows[0];
     if (req.user.role === 'student' && complaint.user_id !== req.user.user_id) {
-      return res.status(403).json({ error: 'Access denied: you can only view your own complaints.' });
+      return res.status(403).json({ error: 'You can view only your own complaints.' });
     }
 
     const [history] = await db.query(
@@ -401,7 +378,7 @@ app.get('/api/complaints/:id', requireAuth, requirePermission('complaints', 'rea
   }
 });
 
-// Update complaint using Optimistic Locking stored procedure
+// Update complaint department & status (with optimistic concurrency check)
 app.put('/api/complaints/:id', requireAuth, requirePermission('complaints', 'update'), async (req, res) => {
   const { department_id, status, version } = req.body;
   const id = Number(req.params.id);
@@ -429,11 +406,11 @@ app.put('/api/complaints/:id', requireAuth, requirePermission('complaints', 'upd
       const [[outRow]] = await db.query('SELECT @affected AS affected');
       if (outRow.affected === 0) {
         return res.status(409).json({
-          error: 'Optimistic lock conflict: complaint was updated by another user. Reloading latest data.'
+          error: 'Someone else updated this complaint just now. Refreshing latest data.'
         });
       }
       if (outRow.affected < 0) {
-        return res.status(500).json({ error: 'Transaction rolled back during update' });
+        return res.status(500).json({ error: 'Update failed. Changes were rolled back.' });
       }
     } else {
       await db.query('CALL sp_update_complaint(?, ?, ?)', [id, newDep, status]);
@@ -467,14 +444,14 @@ app.put('/api/complaints/:id', requireAuth, requirePermission('complaints', 'upd
     );
     await invalidatePrefix('analytics:');
 
-    return res.json({ message: 'Complaint updated', new_version: current.version + 1 });
+    return res.json({ message: 'Complaint updated' });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ error: 'Database error' });
   }
 });
 
-// Cursor-based overdue escalation procedure
+// Escalate overdue pending complaints (uses MySQL cursor stored procedure)
 app.post('/api/complaints/escalate', requireAuth, requirePermission('complaints', 'update'), async (req, res) => {
   const hours = Math.max(0, Number(req.body.hours ?? 24));
   try {
@@ -482,22 +459,25 @@ app.post('/api/complaints/escalate', requireAuth, requirePermission('complaints'
     const [[result]] = await db.query('SELECT @escalated AS escalated');
     await invalidatePrefix('analytics:');
     return res.json({
-      message: `Cursor job completed: ${result.escalated} overdue pending complaint(s) escalated to High priority.`,
+      message:
+        result.escalated > 0
+          ? `${result.escalated} overdue pending complaint(s) escalated to High priority.`
+          : 'No overdue pending complaints found.',
       escalated_count: result.escalated
     });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Cursor procedure execution failed' });
+    return res.status(500).json({ error: 'Could not escalate complaints' });
   }
 });
 
-// ==================== MONGODB COMMENTS, FEEDBACK, ACTIVITY ====================
+// Comments (MongoDB)
 app.get('/api/comments/:complaintId', requireAuth, requirePermission('comments', 'read'), async (req, res) => {
   try {
     const comments = await Comment.find({ complaint_id: Number(req.params.complaintId) }).sort({ created_at: 1 });
     return res.json(comments);
   } catch (err) {
-    return res.status(500).json({ error: 'MongoDB error' });
+    return res.status(500).json({ error: 'Database error' });
   }
 });
 
@@ -520,16 +500,17 @@ app.post('/api/comments', requireAuth, requirePermission('comments', 'create'), 
     await invalidatePrefix('analytics:');
     return res.status(201).json({ message: 'Comment added' });
   } catch (err) {
-    return res.status(500).json({ error: 'MongoDB error' });
+    return res.status(500).json({ error: 'Database error' });
   }
 });
 
+// Feedback (MongoDB, validated against MySQL)
 app.get('/api/feedback/:complaintId', requireAuth, requirePermission('feedback', 'read'), async (req, res) => {
   try {
     const feedback = await Feedback.findOne({ complaint_id: Number(req.params.complaintId) });
     return res.json(feedback);
   } catch (err) {
-    return res.status(500).json({ error: 'MongoDB error' });
+    return res.status(500).json({ error: 'Database error' });
   }
 });
 
@@ -574,22 +555,22 @@ app.post('/api/feedback', requireAuth, requirePermission('feedback', 'create'), 
   }
 });
 
+// Activity timeline (MongoDB)
 app.get('/api/activity/:complaintId', requireAuth, requirePermission('complaints', 'read'), async (req, res) => {
   try {
     const logs = await Activity.find({ complaint_id: Number(req.params.complaintId) }).sort({ created_at: 1 });
     return res.json(logs);
   } catch (err) {
-    return res.status(500).json({ error: 'MongoDB error' });
+    return res.status(500).json({ error: 'Database error' });
   }
 });
 
-// ==================== ANALYTICS (HYBRID MYSQL + MONGODB + KV CACHE) ====================
+// Reports & Analytics (cached)
 app.get('/api/analytics', requireAuth, requirePermission('analytics', 'read'), async (req, res) => {
   try {
     const cached = await getCache('analytics:summary');
     if (cached) {
-      res.set('X-Cache', `HIT (${cached.layer})`);
-      return res.json({ ...cached.value, cache_status: `HIT (${cached.layer})` });
+      return res.json(cached.value);
     }
 
     const [byCategory] = await db.query(
@@ -597,9 +578,6 @@ app.get('/api/analytics', requireAuth, requirePermission('analytics', 'read'), a
     );
     const [byStatus] = await db.query(
       'SELECT status, COUNT(*) AS total FROM Complaints GROUP BY status'
-    );
-    const [byPriority] = await db.query(
-      'SELECT priority, COUNT(*) AS total FROM Complaints GROUP BY priority'
     );
     const [byDepartment] = await db.query(
       `SELECT d.department_name,
@@ -632,39 +610,64 @@ app.get('/api/analytics', requireAuth, requirePermission('analytics', 'read'), a
       }
     ]);
     const totalComments = await Comment.countDocuments();
-    const totalActivities = await Activity.countDocuments();
 
     const payload = {
       byCategory,
       byStatus,
-      byPriority,
       byDepartment,
       resolution,
       slaBreakdown,
-      nosqlMetrics: {
+      feedbackMetrics: {
         avg_rating: mongoFeedbackStats ? Number(mongoFeedbackStats.avg_rating.toFixed(2)) : null,
         total_reviews: mongoFeedbackStats ? mongoFeedbackStats.total_reviews : 0,
-        total_comments: totalComments,
-        total_activities: totalActivities
+        total_comments: totalComments
       }
     };
 
     await setCache('analytics:summary', payload, 45);
-    res.set('X-Cache', 'MISS');
-    return res.json({ ...payload, cache_status: 'MISS (Freshly computed)' });
+    return res.json(payload);
   } catch (err) {
     console.log(err);
     return res.status(500).json({ error: 'Database error' });
   }
 });
 
-// ==================== UNIT 3: USER RBAC MANAGEMENT ====================
+// Refresh report summary table (runs ETL sync in background)
+app.post('/api/reports/sync', requireAuth, requirePermission('analytics', 'create'), async (req, res) => {
+  try {
+    const summary = await runETLPipeline();
+    await invalidatePrefix('analytics:');
+    return res.json({
+      message: `Report summary refreshed (${summary.loaded_warehouse_rows} records).`,
+      ...summary
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: 'Could not refresh report summary' });
+  }
+});
+
+app.get('/api/reports/summary', requireAuth, requirePermission('analytics', 'read'), async (req, res) => {
+  try {
+    const [facts] = await db.query(
+      'SELECT * FROM dw_complaint_facts ORDER BY complaint_id DESC LIMIT 50'
+    );
+    return res.json(facts);
+  } catch (err) {
+    return res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// User & Role Management (Admin)
 app.get('/api/users', requireAuth, requirePermission('users_rbac', 'read'), async (req, res) => {
   try {
     const [users] = await db.query(
       'SELECT user_id, name, email, role, created_at FROM Users ORDER BY user_id ASC'
     );
-    return res.json(users);
+    const [auditLogs] = await db.query(
+      'SELECT audit_id, actor_role, action, resource, details, created_at FROM Audit_Security_Logs ORDER BY audit_id DESC LIMIT 15'
+    );
+    return res.json({ users, auditLogs });
   } catch (err) {
     return res.status(500).json({ error: 'Database error' });
   }
@@ -677,7 +680,7 @@ app.put('/api/users/:id/role', requireAuth, requirePermission('users_rbac', 'upd
     return res.status(400).json({ error: 'Invalid role' });
   }
   if (targetId === req.user.user_id && newRole !== 'admin') {
-    return res.status(400).json({ error: 'You cannot demote your own active admin session.' });
+    return res.status(400).json({ error: 'You cannot remove your own admin role.' });
   }
 
   try {
@@ -689,228 +692,9 @@ app.put('/api/users/:id/role', requireAuth, requirePermission('users_rbac', 'upd
       'Users',
       `User #${targetId} role updated to ${newRole}`
     );
-    return res.json({ message: `User #${targetId} role updated to ${newRole}` });
+    return res.json({ message: 'User role updated' });
   } catch (err) {
     return res.status(500).json({ error: 'Database error' });
-  }
-});
-
-app.get('/api/rbac/permissions', requireAuth, requirePermission('dbms_lab', 'read'), async (req, res) => {
-  try {
-    const [permissions] = await db.query('SELECT * FROM RBAC_Permissions ORDER BY role, resource');
-    const [auditLogs] = await db.query(
-      'SELECT * FROM Audit_Security_Logs ORDER BY audit_id DESC LIMIT 20'
-    );
-    return res.json({ permissions, auditLogs });
-  } catch (err) {
-    return res.status(500).json({ error: 'Database error' });
-  }
-});
-
-// ==================== UNIT 3 & 4: DBMS LAB (EXPLAIN, ACID, LOCKING, SQLi, CACHE, ETL) ====================
-app.get('/api/dbms/explain', requireAuth, requirePermission('dbms_lab', 'read'), async (req, res) => {
-  try {
-    const queries = [
-      {
-        name: 'Student Dashboard Lookup (Composite B-Tree Index)',
-        sql: 'SELECT complaint_id, title, status FROM Complaints WHERE user_id = 1 ORDER BY created_at DESC'
-      },
-      {
-        name: 'Status + Priority Filter (Composite B-Tree Index)',
-        sql: "SELECT complaint_id, title FROM Complaints WHERE status = 'Pending' AND priority = 'High'"
-      },
-      {
-        name: 'Complaint Details Join + Hash SLA Lookup',
-        sql: `SELECT c.complaint_id, d.department_name, s.target_minutes
-              FROM Complaints c
-              LEFT JOIN Departments d ON c.department_id = d.department_id
-              LEFT JOIN SLA_Policy_Hash s ON c.priority = s.priority
-              WHERE c.complaint_id = 1`
-      }
-    ];
-
-    const plans = [];
-    for (const q of queries) {
-      const [explainRows] = await db.query(`EXPLAIN ${q.sql}`);
-      plans.push({ name: q.name, sql: q.sql, plan: explainRows });
-    }
-
-    const [complaintsIndexes] = await db.query('SHOW INDEX FROM Complaints');
-    const [hashIndexes] = await db.query('SHOW INDEX FROM SLA_Policy_Hash');
-    const [[isoRow]] = await db.query('SELECT @@transaction_isolation AS isolation_level');
-
-    return res.json({
-      isolation_level: isoRow.isolation_level,
-      plans,
-      btree_indexes: complaintsIndexes.map((i) => ({
-        table: i.Table,
-        key_name: i.Key_name,
-        column: i.Column_name,
-        index_type: i.Index_type,
-        cardinality: i.Cardinality
-      })),
-      hash_indexes: hashIndexes.map((i) => ({
-        table: i.Table,
-        key_name: i.Key_name,
-        column: i.Column_name,
-        index_type: i.Index_type
-      }))
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({ error: 'Failed to inspect execution plans' });
-  }
-});
-
-app.post('/api/dbms/acid-demo', requireAuth, requirePermission('dbms_lab', 'create'), async (req, res) => {
-  const mode = req.body.mode === 'rollback' ? 'rollback' : 'commit_with_savepoint';
-  const conn = await db.getConnection();
-  const trace = [];
-
-  try {
-    await conn.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
-    trace.push('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
-
-    await conn.beginTransaction();
-    trace.push('START TRANSACTION');
-
-    await conn.query(
-      `INSERT INTO Audit_Security_Logs (actor_user_id, actor_role, action, resource, details)
-       VALUES (?, ?, 'ACID_STEP_1', 'Audit_Security_Logs', 'Primary step committed in tx')`,
-      [req.user.user_id, req.user.role]
-    );
-    trace.push('INSERT INTO Audit_Security_Logs (ACID_STEP_1)');
-
-    await conn.query('SAVEPOINT sp_midpoint');
-    trace.push('SAVEPOINT sp_midpoint');
-
-    await conn.query(
-      `INSERT INTO Audit_Security_Logs (actor_user_id, actor_role, action, resource, details)
-       VALUES (?, ?, 'ACID_TEMP_STEP', 'Audit_Security_Logs', 'Temporary step before savepoint rollback')`,
-      [req.user.user_id, req.user.role]
-    );
-    trace.push('INSERT INTO Audit_Security_Logs (ACID_TEMP_STEP)');
-
-    await conn.query('ROLLBACK TO SAVEPOINT sp_midpoint');
-    trace.push('ROLLBACK TO SAVEPOINT sp_midpoint (reverted ACID_TEMP_STEP, kept ACID_STEP_1)');
-
-    if (mode === 'rollback') {
-      await conn.rollback();
-      trace.push('ROLLBACK (entire transaction undone — Atomicity preserved)');
-    } else {
-      await conn.commit();
-      trace.push('COMMIT (ACID_STEP_1 durably persisted)');
-    }
-
-    return res.json({
-      mode,
-      outcome: mode === 'rollback' ? 'Rolled back completely' : 'Committed with partial savepoint rollback',
-      trace
-    });
-  } catch (err) {
-    await conn.rollback();
-    return res.status(500).json({ error: 'ACID demo failed', trace });
-  } finally {
-    conn.release();
-  }
-});
-
-app.post('/api/dbms/lock-demo', requireAuth, requirePermission('dbms_lab', 'update'), async (req, res) => {
-  const complaintId = Number(req.body.complaint_id || 1);
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-    const [locked] = await conn.query(
-      'SELECT complaint_id, status, version FROM Complaints WHERE complaint_id = ? FOR UPDATE',
-      [complaintId]
-    );
-    if (locked.length === 0) {
-      await conn.rollback();
-      return res.status(404).json({ error: 'Complaint not found for lock demo' });
-    }
-    const row = locked[0];
-    await conn.commit();
-
-    // Test stale optimistic lock safely
-    await db.query('CALL sp_update_complaint_optimistic(?, NULL, ?, ?, @affected)', [
-      row.complaint_id,
-      row.status,
-      row.version - 1
-    ]);
-    const [[staleCheck]] = await db.query('SELECT @affected AS affected');
-
-    return res.json({
-      pessimistic_lock: `SELECT ... FOR UPDATE acquired exclusive row lock on Complaint #${row.complaint_id} (current version ${row.version}) and released on COMMIT.`,
-      optimistic_lock_test: `Simulated stale update with version=${row.version - 1} affected ${staleCheck.affected} row(s) -> conflict prevented!`
-    });
-  } catch (err) {
-    await conn.rollback();
-    return res.status(500).json({ error: 'Lock demo error' });
-  } finally {
-    conn.release();
-  }
-});
-
-app.post('/api/dbms/sqli-test', requireAuth, requirePermission('dbms_lab', 'read'), async (req, res) => {
-  const payload = String(req.body.payload || "' OR '1'='1");
-  try {
-    const [rows] = await db.query(
-      'SELECT user_id, name, email, role FROM Users WHERE email = ?',
-      [payload]
-    );
-    await logSecurityAudit(
-      req.user.user_id,
-      req.user.role,
-      'SQLI_TEST_BLOCKED',
-      'Users',
-      `Tested payload safely via parameterized query: ${payload.slice(0, 60)}`
-    );
-    return res.json({
-      tested_payload: payload,
-      parameterized_sql: 'SELECT user_id, name, email, role FROM Users WHERE email = ?',
-      rows_returned: rows.length,
-      safe: true,
-      explanation: 'Prepared statement treated the entire input as a literal string parameter, neutralizing SQL injection.'
-    });
-  } catch (err) {
-    return res.status(500).json({ error: 'Database error' });
-  }
-});
-
-app.get('/api/cache/stats', requireAuth, requirePermission('dbms_lab', 'read'), async (req, res) => {
-  return res.json(await getCacheStats());
-});
-
-app.post('/api/cache/clear', requireAuth, requirePermission('dbms_lab', 'update'), async (req, res) => {
-  await clearAllCache();
-  return res.json({ message: 'Key-Value cache cleared (Memory + MongoDB KV Store)' });
-});
-
-app.post('/api/etl/run', requireAuth, requirePermission('analytics', 'create'), async (req, res) => {
-  try {
-    const summary = await runETLPipeline();
-    return res.json(summary);
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({ error: 'ETL pipeline execution failed' });
-  }
-});
-
-app.get('/api/etl/status', requireAuth, requirePermission('analytics', 'read'), async (req, res) => {
-  try {
-    const [facts] = await db.query(
-      'SELECT * FROM dw_complaint_facts ORDER BY complaint_id ASC LIMIT 50'
-    );
-    const snapshots = await DataLakeSnapshot.find(
-      {},
-      { batch_id: 1, source: 1, extracted_at: 1, record_count: 1 }
-    )
-      .sort({ extracted_at: -1 })
-      .limit(5)
-      .lean();
-    return res.json({ warehouse_facts: facts, data_lake_snapshots: snapshots });
-  } catch (err) {
-    return res.status(500).json({ error: 'Failed to load ETL status' });
   }
 });
 
